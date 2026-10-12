@@ -1,0 +1,1 @@
+{"passed":true,"checks":11,"failures":"","method":"Calls actual HUD button handlers; does not inject mouse clicks"}

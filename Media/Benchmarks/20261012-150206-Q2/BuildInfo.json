@@ -1,0 +1,48 @@
+{
+  "version": "0.3.0",
+  "date": "2026-10-12",
+  "engine": "5.8.2",
+  "hardware": {
+    "gpu": "GeForce GTX 1060 6GB",
+    "cpu": "Intel Core i7-9700K",
+    "ram_gb": 16
+  },
+  "renderer": "DX11, native1080p, HIGH, SSGI quality3, SSR, CSM4096, 60FPS cap",
+  "performance": {
+    "preset": "HIGH",
+    "width": 1920,
+    "height": 1080,
+    "screen_percentage": 100,
+    "frames": 2903,
+    "measured_seconds": 48.399,
+    "average_fps": 59.98,
+    "p95_ms": 16.69,
+    "p99_ms": 16.72,
+    "worst_ms": 31.84,
+    "frames_over_33_33ms": 0,
+    "popped": 27,
+    "cameras": [
+      {
+        "camera": 0,
+        "frames": 769,
+        "average_fps": 60.0,
+        "p95_ms": 16.69
+      },
+      {
+        "camera": 1,
+        "frames": 1068,
+        "average_fps": 60.0,
+        "p95_ms": 16.69
+      },
+      {
+        "camera": 2,
+        "frames": 1066,
+        "average_fps": 59.95,
+        "p95_ms": 16.7
+      }
+    ],
+    "method": "Real frame intervals after 10s warmup; screenshot frames excluded; 60fps cap; all 3 cameras"
+  },
+  "main_executable": "Clanka/Binaries/Win64/Clanka.exe",
+  "sha256": "e56e4c69f0415a76838e975d1e13d0b91795e6e2e87676766cc4eaf30d881309"
+}

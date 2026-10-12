@@ -32,9 +32,15 @@ public:
     void StartGame(bool Autopilot);
     void ReturnToMenu();
     void ToggleSound();
+    void ToggleQuality();
+    void ApplyQuality();
+    FString QualityLabel() const;
     void SaveBest();
     int BestScore=0;
     bool bSound=true, bAutopilot=false;
+    bool bPhotoMode=false;
+    int GraphicsPreset=1;
+    float SmoothedFPS=60;
     float SceneTime=0, WaveBanner=0;
     TArray<FScoreFloat> FloatingScores;
     bool bHelp=true;
@@ -51,6 +57,7 @@ private:
     UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> Water;
     UPROPERTY() TArray<TObjectPtr<UInstancedStaticMeshComponent>> Confetti;
     UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> Ribbons;
+    UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> BalloonKnots;
     UPROPERTY() TObjectPtr<UStaticMeshComponent> Muzzle;
     UPROPERTY() TObjectPtr<UAudioComponent> WaterAudio;
     UPROPERTY() TObjectPtr<UAudioComponent> Ambience;
@@ -65,11 +72,20 @@ private:
     float CameraZoom=1, WaterAudioLevel=0;
     TArray<FWaterParticle> Particles;
     FRandomStream FXRandom{1776};
+    bool bBenchmark=false, bMenuCapture=false, bInteractionTest=false;
+    double PerfStart=0, LastFrameClock=0, BenchmarkDuration=65;
+    double PausedTestTime=0;
+    int TestStage=0, BenchmarkStage=0;
+    TArray<double> FrameMilliseconds;
+    TArray<int> FrameCameras;
+    TArray<FString> InteractionFailures;
     UStaticMeshComponent* Glow(const TCHAR* Shape,FVector Position,FVector Size,FLinearColor Color,float Brightness=1);
     void BuildArena();
     void UpdateCamera(float DeltaSeconds);
     void UpdateEffects(float DeltaSeconds);
     void ReadClick();
+    void UpdateDiagnostics(float DeltaSeconds);
+    void SaveBenchmark();
 };
 
 UCLASS()

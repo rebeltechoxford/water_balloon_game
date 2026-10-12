@@ -17,3 +17,9 @@ WindowsDemo/*Result.json
 WindowsDemo/SessionLog.csv
 *.log
 *.zip
+AssetsSource/
+work/
+Intermediate-HddBackup/
+__pycache__/
+*.pyc
+*.pyo

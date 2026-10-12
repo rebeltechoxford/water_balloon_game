@@ -13,6 +13,9 @@
 #include "Engine/SkyLight.h"
 #include "Engine/ExponentialHeightFog.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/TextureCube.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Engine/Engine.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Sound/SoundBase.h"
@@ -46,81 +49,65 @@ UStaticMeshComponent* ASplashRange::Glow(const TCHAR* Shape,FVector Position,FVe
     if(GlowMaterial) { auto* M=UMaterialInstanceDynamic::Create(GlowMaterial,this); M->SetVectorParameterValue(TEXT("Tint"),Color*Brightness); C->SetMaterial(0,M); }
     return C;
 }
-void ASplashRange::BuildArena() {
-    // Floating water laboratory: raised deck, luminous lanes, botanical perimeter.
-    Mesh(TEXT("Cube"),FVector(950,0,-105),FVector(52,38,1.8f),FLinearColor(.028f,.08f,.13f));
-    Mesh(TEXT("Cube"),FVector(950,0,-12),FVector(50,36,.14f),FLinearColor(.085f,.22f,.29f));
-    Glow(TEXT("Cube"),FVector(950,-1850,-50),FVector(51,.07f,.12f),FLinearColor(.02f,.7f,1),2);
-    Glow(TEXT("Cube"),FVector(950,1850,-50),FVector(51,.07f,.12f),FLinearColor(.02f,.7f,1),2);
-    for(int I=-8;I<=19;++I) Mesh(TEXT("Cube"),FVector(I*175,0,-3),FVector(.015f,35,.016f),FLinearColor(.15f,.34f,.4f));
-    for(int I=-10;I<=10;++I) Mesh(TEXT("Cube"),FVector(950,I*175,-3),FVector(50,.015f,.016f),FLinearColor(.15f,.34f,.4f));
-    Mesh(TEXT("Cube"),FVector(1500,940,-1),FVector(30,6.4f,.035f),FLinearColor(.22f,.15f,.09f));
-    for(int I=0;I<16;++I) { auto* Stripe=Glow(TEXT("Cube"),FVector(I*190,628,2),FVector(.85f,.055f,.025f),FLinearColor(1,.43f,.055f)); Stripe->SetWorldRotation(FRotator(0,-25,0)); }
-    // Range gate and beacons.
-    for(int Side:{-1,1}) {
-        Mesh(TEXT("Cube"),FVector(2750,Side*1400,700),FVector(1.1f,1.1f,14),FLinearColor(.065f,.15f,.23f));
-        Glow(TEXT("Cube"),FVector(2689,Side*1400,700),FVector(.035f,.25f,12.8f),FLinearColor(.05f,.8f,1),2);
-        for(int I=0;I<8;++I) {
-            float X=-950+I*560; Mesh(TEXT("Cylinder"),FVector(X,Side*1700,72),FVector(.42f,.42f,1.44f),FLinearColor(.16f,.27f,.32f));
-            Glow(TEXT("Sphere"),FVector(X,Side*1700,155),FVector(.25f),FLinearColor(.04f,.82f,1),1.7f);
-        }
-    }
-    Mesh(TEXT("Cube"),FVector(2750,0,1440),FVector(1.1f,29,1),FLinearColor(.055f,.12f,.2f));
-    Glow(TEXT("Cube"),FVector(2690,0,1430),FVector(.03f,26,.06f),FLinearColor(.14f,.8f,1),2);
-    auto* Sign=NewObject<UTextRenderComponent>(this); Sign->SetupAttachment(RootComponent); Sign->RegisterComponent(); Sign->SetWorldLocation(FVector(2685,0,1510)); Sign->SetWorldRotation(FRotator(0,180,0)); Sign->SetHorizontalAlignment(EHTA_Center); Sign->SetWorldSize(105); Sign->SetText(FText::FromString(TEXT("S P L A S H   L A B"))); Sign->SetTextRenderColor(FColor(155,233,255));
-    // Stylized landscape instead of an empty template level.
-    for(int I=0;I<20;++I) {
-        float Angle=I*PI*2/20, Radius=5000+FXRandom.FRandRange(0,1600);
-        FVector P(900+FMath::Cos(Angle)*Radius,FMath::Sin(Angle)*Radius,-160);
-        float Tall=FXRandom.FRandRange(11,24);
-        Mesh(TEXT("Cone"),P+FVector(0,0,Tall*40),FVector(30,30,Tall),FLinearColor(.06f,.16f+I%3*.03f,.21f+I%4*.03f));
-        if(I%2==0) { FVector Cloud=P*.8f+FVector(0,0,2200); for(int J=0;J<3;++J) Mesh(TEXT("Sphere"),Cloud+FVector(J*250,0,J%2*80),FVector(7,4,2.2f),FLinearColor(.35f,.58f,.68f)); }
-    }
-    for(int I=0;I<9;++I) {
-        FVector P(-1200+I*540,2200+(I%2)*180,0);
-        Mesh(TEXT("Cylinder"),P+FVector(0,0,160),FVector(.6f,.6f,3.2f),FLinearColor(.16f,.12f,.08f));
-        Mesh(TEXT("Cone"),P+FVector(0,0,460),FVector(4.5f,4.5f,6),FLinearColor(.035f,.3f,.21f));
-        Mesh(TEXT("Cone"),P+FVector(0,0,680),FVector(3,3,4.5f),FLinearColor(.055f,.4f,.27f));
-    }
-    // Water tank and cannon station.
-    Mesh(TEXT("Cylinder"),FVector(-440,330,140),FVector(2.8f,2.8f,2.8f),FLinearColor(.04f,.27f,.38f));
-    for(int I=0;I<3;++I) Glow(TEXT("Cylinder"),FVector(-440,330,30+I*110),FVector(2.84f,2.84f,.045f),FLinearColor(.07f,.66f,.94f),1.5f);
-    Mesh(TEXT("Cube"),FVector(-240,190,45),FVector(3.5f,.3f,.3f),FLinearColor(.04f,.3f,.4f))->SetWorldRotation(FRotator(0,-35,0));
-    Mesh(TEXT("Cylinder"),FVector(0,0,25),FVector(3.6f,3.6f,.5f),FLinearColor(.04f,.1f,.17f));
-    Glow(TEXT("Cylinder"),FVector(0,0,52),FVector(3.3f,3.3f,.04f),FLinearColor(.035f,.75f,1),2);
-    Mesh(TEXT("Cylinder"),FVector(0,0,90),FVector(1.6f,1.6f,.7f),FLinearColor(.25f,.43f,.5f));
-    Head=Mesh(TEXT("Sphere"),WorldPoint(Sim.nozzle),FVector(1.7f,1.55f,1.4f),FLinearColor(.7f,.83f,.82f));
-    Barrel=Mesh(TEXT("Cylinder"),WorldPoint(Sim.nozzle),FVector(.52f,.52f,2),FLinearColor(.08f,.35f,.46f));
-    Muzzle=Glow(TEXT("Cylinder"),WorldPoint(Sim.nozzle),FVector(.62f,.62f,.14f),FLinearColor(.1f,.8f,1),2);
-}
 void ASplashRange::BeginPlay() {
     Super::BeginPlay();
     Material=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Materials/M_Splash.M_Splash"));
     GlowMaterial=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Materials/M_Glow.M_Glow"));
     BuildArena();
+    auto* Latex=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Realism/M_Latex.M_Latex"));
     for(int I=0;I<static_cast<int>(Sim.balloons.size());++I) {
         auto* B=Mesh(TEXT("Sphere"),WorldPoint(Sim.balloons[I].p),FVector(1.35f,1.35f,1.65f),BalloonColor(I,Sim.balloons[I].kind));
+        if(Latex) { auto* M=UMaterialInstanceDynamic::Create(Latex,this); M->SetVectorParameterValue(TEXT("Tint"),BalloonColor(I,Sim.balloons[I].kind)); B->SetMaterial(0,M); }
         BalloonMeshes.Add(B); BalloonMaterials.Add(Cast<UMaterialInstanceDynamic>(B->GetMaterial(0)));
         if(BalloonMaterials.Last()) BalloonMaterials.Last()->SetScalarParameterValue(TEXT("Roughness"),.27f);
+        BalloonKnots.Add(Mesh(TEXT("Cone"),WorldPoint(Sim.balloons[I].p)-FVector(0,0,85),FVector(.15f,.15f,.22f),BalloonColor(I,Sim.balloons[I].kind)));
         Ribbons.Add(Mesh(TEXT("Cylinder"),WorldPoint(Sim.balloons[I].p)-FVector(0,0,130),FVector(.018f,.018f,1.1f),FLinearColor(.65f,.77f,.8f)));
     }
     auto MakeInstances=[this](FLinearColor Color,const TCHAR* Shape) {
         auto* C=NewObject<UInstancedStaticMeshComponent>(this); C->SetupAttachment(RootComponent); C->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,*FString::Printf(TEXT("/Engine/BasicShapes/%s.%s"),Shape,Shape))); C->SetCollisionEnabled(ECollisionEnabled::NoCollision); C->SetCastShadow(false); C->RegisterComponent();
-        if(GlowMaterial) { auto* M=UMaterialInstanceDynamic::Create(GlowMaterial,this); M->SetVectorParameterValue(TEXT("Tint"),Color); C->SetMaterial(0,M); } return C;
+        auto* FXMat=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Realism/M_Droplet.M_Droplet"));
+        if(!FXMat) FXMat=Material;
+        if(FXMat) { auto* M=UMaterialInstanceDynamic::Create(FXMat,this); M->SetVectorParameterValue(TEXT("Tint"),Color); M->SetScalarParameterValue(TEXT("Roughness"),.08f); C->SetMaterial(0,M); } return C;
     };
-    Water=MakeInstances(FLinearColor(.07f,.62f,1)*2,TEXT("Sphere"));
-    Confetti.Add(MakeInstances(FLinearColor(.2f,1,.75f)*1.5f,TEXT("Sphere")));
-    Confetti.Add(MakeInstances(FLinearColor(1,.6f,.09f)*1.5f,TEXT("Cube")));
-    Confetti.Add(MakeInstances(FLinearColor(.6f,.25f,1)*1.5f,TEXT("Cube")));
-    auto* Sun=GetWorld()->SpawnActor<ADirectionalLight>(); auto* Light=Cast<UDirectionalLightComponent>(Sun->GetLightComponent()); Light->SetMobility(EComponentMobility::Movable); Sun->SetActorRotation(FRotator(-32,-45,0)); Light->SetIntensity(4.5f); Light->SetLightColor(FLinearColor(1,.82f,.65f)); Light->bAtmosphereSunLight=true; Light->DynamicShadowDistanceMovableLight=12000; Light->DynamicShadowCascades=2;
-    auto* SkyActor=GetWorld()->SpawnActor<AActor>(); auto* Atmosphere=NewObject<USkyAtmosphereComponent>(SkyActor); SkyActor->SetRootComponent(Atmosphere); Atmosphere->RegisterComponent();
-    auto* Sky=GetWorld()->SpawnActor<ASkyLight>(); Sky->GetLightComponent()->SetMobility(EComponentMobility::Movable); Sky->GetLightComponent()->SetIntensity(.65f); Sky->GetLightComponent()->RecaptureSky();
-    auto* Fog=GetWorld()->SpawnActor<AExponentialHeightFog>(); Fog->GetComponent()->SetFogDensity(.008f); Fog->GetComponent()->SetFogInscatteringColor(FLinearColor(.08f,.22f,.3f)); Fog->GetComponent()->SetStartDistance(3200);
-    Camera=GetWorld()->SpawnActor<ACameraActor>(); Camera->GetCameraComponent()->SetFieldOfView(58); Camera->GetCameraComponent()->bConstrainAspectRatio=false;
+    Water=MakeInstances(FLinearColor(.65f,.87f,.95f),TEXT("Sphere"));
+    Confetti.Add(MakeInstances(FLinearColor(.7f,.85f,.91f),TEXT("Sphere")));
+    Confetti.Add(MakeInstances(FLinearColor(.72f,.85f,.92f),TEXT("Sphere")));
+    Confetti.Add(MakeInstances(FLinearColor(.72f,.85f,.92f),TEXT("Sphere")));
+    auto* Sun=GetWorld()->SpawnActor<ADirectionalLight>();
+    auto* Light=Cast<UDirectionalLightComponent>(Sun->GetLightComponent());
+    Light->SetMobility(EComponentMobility::Movable); Sun->SetActorRotation(FRotator(-38,40,0));
+    Light->SetIntensity(5.5f); Light->SetLightColor(FLinearColor(1,.92f,.82f));
+    Light->bAtmosphereSunLight=true; Light->DynamicShadowDistanceMovableLight=18000;
+    Light->DynamicShadowCascades=3; Light->LightSourceAngle=1.1f; Light->ShadowBias=.35f;
+    Light->ContactShadowLength=.12f;
+    auto* SkyActor=GetWorld()->SpawnActor<AActor>();
+    auto* Atmosphere=NewObject<USkyAtmosphereComponent>(SkyActor); SkyActor->SetRootComponent(Atmosphere); Atmosphere->RegisterComponent();
+    auto* Sky=GetWorld()->SpawnActor<ASkyLight>(); auto* SkyLight=Sky->GetLightComponent();
+    SkyLight->SetMobility(EComponentMobility::Movable); SkyLight->SetIntensity(1.5f);
+    if(auto* Cube=LoadObject<UTextureCube>(nullptr,TEXT("/Game/Realism/T_Environment.T_Environment"))) {
+        SkyLight->SourceType=SLS_SpecifiedCubemap; SkyLight->SetCubemap(Cube); SkyLight->SetSourceCubemapAngle(75);
+    }
+    SkyLight->SetLowerHemisphereColor(FLinearColor(.16f,.17f,.18f)); SkyLight->RecaptureSky();
+    if(auto* SkyMat=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Realism/M_Sky.M_Sky"))) {
+        auto* Dome=Mesh(TEXT("Sphere"),FVector::ZeroVector,FVector(2000),FLinearColor::White);
+        Dome->SetMaterial(0,SkyMat); Dome->SetCastShadow(false);
+    }
+    auto* Fog=GetWorld()->SpawnActor<AExponentialHeightFog>();
+    Fog->GetComponent()->SetFogDensity(.0015f); Fog->GetComponent()->SetFogHeightFalloff(.12f);
+    Fog->GetComponent()->SetFogInscatteringColor(FLinearColor(.39f,.37f,.31f));
+    Fog->GetComponent()->SetStartDistance(6500); Fog->GetComponent()->SetFogMaxOpacity(.25f);
+    Fog->GetComponent()->SetVolumetricFog(false);
+    Camera=GetWorld()->SpawnActor<ACameraActor>(); Camera->GetCameraComponent()->SetFieldOfView(65); Camera->GetCameraComponent()->bConstrainAspectRatio=false;
     auto& PP=Camera->GetCameraComponent()->PostProcessSettings;
     PP.bOverride_AutoExposureMethod=true; PP.AutoExposureMethod=EAutoExposureMethod::AEM_Manual;
-    PP.bOverride_AutoExposureBias=true; PP.AutoExposureBias=1.2f; PP.bOverride_AutoExposureApplyPhysicalCameraExposure=true; PP.AutoExposureApplyPhysicalCameraExposure=false;
-    PP.bOverride_BloomIntensity=true; PP.BloomIntensity=.35f; PP.bOverride_VignetteIntensity=true; PP.VignetteIntensity=.3f;
+    PP.bOverride_AutoExposureBias=true; PP.AutoExposureBias=-.65f; PP.bOverride_AutoExposureApplyPhysicalCameraExposure=true; PP.AutoExposureApplyPhysicalCameraExposure=false;
+    PP.bOverride_BloomIntensity=true; PP.BloomIntensity=.18f; PP.bOverride_VignetteIntensity=true; PP.VignetteIntensity=.22f;
+    PP.bOverride_AmbientOcclusionIntensity=true; PP.AmbientOcclusionIntensity=1.05f;
+    PP.bOverride_AmbientOcclusionRadius=true; PP.AmbientOcclusionRadius=110;
+    PP.bOverride_ScreenSpaceReflectionIntensity=true; PP.ScreenSpaceReflectionIntensity=85;
+    PP.bOverride_ScreenSpaceReflectionQuality=true; PP.ScreenSpaceReflectionQuality=50;
+    PP.bOverride_ColorContrast=true; PP.ColorContrast=FVector4(1.04f,1.04f,1.04f,1);
+    PP.bOverride_ColorSaturation=true; PP.ColorSaturation=FVector4(.94f,.94f,.94f,1);
     Camera->GetCameraComponent()->PostProcessBlendWeight=1;
     CameraIndex=0; UpdateCamera(100);
     auto* PC=GetWorld()->GetFirstPlayerController(); PC->bShowMouseCursor=true; PC->bEnableClickEvents=true; PC->SetViewTarget(Camera); PC->SetInputMode(FInputModeGameAndUI());
@@ -129,16 +116,27 @@ void ASplashRange::BeginPlay() {
     Ambience=NewObject<UAudioComponent>(this); Ambience->SetupAttachment(RootComponent); Ambience->bAutoActivate=false; Ambience->SetSound(LoadObject<USoundBase>(nullptr,TEXT("/Game/Audio/S_Ambience.S_Ambience"))); Ambience->RegisterComponent(); Ambience->SetVolumeMultiplier(.2f); Ambience->Play();
     FString SavedScore; if(FFileHelper::LoadFileToString(SavedScore,*FPaths::Combine(FPaths::ProjectSavedDir(),TEXT("BestScore.txt")))) BestScore=FCString::Atoi(*SavedScore);
     bDemoTest=FParse::Param(FCommandLine::Get(),TEXT("DemoTest"));
-    if(bDemoTest) { StartGame(true); Command(splash::Action::Engage); }
+    bBenchmark=FParse::Param(FCommandLine::Get(),TEXT("PerfTest"));
+    bMenuCapture=FParse::Param(FCommandLine::Get(),TEXT("MenuCapture"));
+    bInteractionTest=FParse::Param(FCommandLine::Get(),TEXT("InteractionTest"));
+    FParse::Value(FCommandLine::Get(),TEXT("PerfSeconds="),BenchmarkDuration);
+    BenchmarkDuration=FMath::Clamp(BenchmarkDuration,60.0,180.0);
+    FParse::Value(FCommandLine::Get(),TEXT("Camera="),CameraIndex);
+    GConfig->GetInt(TEXT("Clanka"),TEXT("GraphicsPreset"),GraphicsPreset,FPaths::Combine(FPaths::ProjectSavedDir(),TEXT("ClankaSettings.ini")));
+    FParse::Value(FCommandLine::Get(),TEXT("Quality="),GraphicsPreset);
+    GraphicsPreset=FMath::Clamp(GraphicsPreset,0,2); CameraIndex=FMath::Clamp(CameraIndex,0,2);
+    bPhotoMode=FParse::Param(FCommandLine::Get(),TEXT("PhotoMode"));
+    ApplyQuality(); PerfStart=LastFrameClock=FPlatformTime::Seconds();
+    if(bDemoTest || bBenchmark) { StartGame(true); Command(splash::Action::Engage); }
 }
 void ASplashRange::StartGame(bool Autopilot) {
     Sim.action(splash::Action::PowerOn); Sim.automatic=true; bAutopilot=Autopilot; bHelp=false;
     if(bSound && ConfirmSound) UGameplayStatics::PlaySound2D(this,ConfirmSound,.45f);
     Notice=TEXT("SYSTEM ONLINE  //  Press ENGAGE to begin automatic spraying"); NoticeSeconds=4;
 }
-void ASplashRange::ReturnToMenu() { SaveBest(); Sim.action(splash::Action::PowerOff); bHelp=true; }
+void ASplashRange::ReturnToMenu() { SaveBest(); Sim.action(splash::Action::PowerOff); bHelp=true; bPhotoMode=false; }
 void ASplashRange::Command(splash::Action A) {
-    if(A==splash::Action::Reset) { SaveBest(); LastPopSerial=0; LastPopped=0; LastWave=1; Particles.Empty(); FloatingScores.Empty(); }
+    if(A==splash::Action::Reset) { bPhotoMode=false; SaveBest(); LastPopSerial=0; LastPopped=0; LastWave=1; Particles.Empty(); FloatingScores.Empty(); }
     Sim.action(A); if(bSound && ConfirmSound) UGameplayStatics::PlaySound2D(this,ConfirmSound,.32f);
 }
 void ASplashRange::Select(int Index) {
@@ -146,8 +144,9 @@ void ASplashRange::Select(int Index) {
     if(Index>=0 && Index<static_cast<int>(Sim.balloons.size()) && Sim.eligible(Sim.balloons[Index])) { Sim.selected=Index; Notice=FString::Printf(TEXT("Prioritizing track B-%02d"),Index+1); NoticeSeconds=2; }
 }
 void ASplashRange::ReadClick() {
-    auto* PC=GetWorld()->GetFirstPlayerController(); if(!PC || !Sim.running) return;
+    auto* PC=GetWorld()->GetFirstPlayerController(); if(!PC || !Sim.running || bHelp || bPhotoMode) return;
     float MX=0,MY=0; if(!PC->GetMousePosition(MX,MY)) return; int X=0,Y=0; PC->GetViewportSize(X,Y);
+    if(PC->GetHUD() && PC->GetHUD()->GetHitBoxAtCoordinates(FVector2D(MX,MY),true)) return;
     if(MY<100.f*Y/900 || MY>750.f*Y/900) return;
     float Best=70.f; int Index=-1;
     for(int I=0;I<static_cast<int>(Sim.balloons.size());++I) { if(!Sim.eligible(Sim.balloons[I])) continue; FVector2D P; if(PC->ProjectWorldLocationToScreen(WorldPoint(Sim.balloons[I].p),P)) { float D=FVector2D::Distance(P,FVector2D(MX,MY)); if(D<Best) { Best=D; Index=I; } } }
@@ -155,8 +154,8 @@ void ASplashRange::ReadClick() {
 }
 void ASplashRange::ChangeCamera() { CameraIndex=(CameraIndex+1)%3; }
 void ASplashRange::UpdateCamera(float Dt) {
-    const FVector Positions[]={FVector(-2100,-2900,1950),FVector(-1400,-50,620),FVector(900,-2200,2550)};
-    FVector Focus(1080,0,490), Position=Focus+(Positions[CameraIndex]-Focus)*CameraZoom;
+    const FVector Positions[]={FVector(-2000,-1650,850),FVector(-1450,-220,500),FVector(950,-2100,2040)};
+    FVector Focus(900,100,450), Position=Focus+(Positions[CameraIndex]-Focus)*CameraZoom;
     if(!Sim.running) Position+=FVector(FMath::Sin(SceneTime*.08f)*90,FMath::Cos(SceneTime*.08f)*70,0);
     Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(),Position,Dt,3)); Camera->SetActorRotation((Focus-Camera->GetActorLocation()).Rotation());
 }
@@ -181,7 +180,7 @@ void ASplashRange::UpdateEffects(float Dt) {
     for(auto& C:Confetti) C->ClearInstances();
     for(const auto& P:Particles) { float S=P.Size*(1-P.Age/P.Life); Confetti[P.Kind]->AddInstance(FTransform(FRotator(P.Age*160,P.Age*250,0),P.Position,FVector(S)),true); }
     for(auto& F:FloatingScores) { F.Age+=Dt; F.Position.Z+=Dt*80; } FloatingScores.RemoveAll([](const FScoreFloat& F){return F.Age>1.15f;});
-    Water->ClearInstances(); for(const auto& D:Sim.drops) Water->AddInstance(FTransform(WorldPoint(D.v).Rotation(),WorldPoint(D.p),FVector(.21f,.075f,.075f)),true);
+    Water->ClearInstances(); for(const auto& D:Sim.drops) Water->AddInstance(FTransform(WorldPoint(D.v).Rotation(),WorldPoint(D.p),FVector(.39f,.065f,.065f)),true);
     if(Sim.paused || !bSound) { WaterAudioLevel=0; WaterAudio->Stop(); return; }
     float TargetVolume=Sim.spraying && bSound && !Sim.paused?.17f:0;
     WaterAudioLevel=FMath::FInterpTo(WaterAudioLevel,TargetVolume,Dt,10); WaterAudio->SetVolumeMultiplier(WaterAudioLevel);
@@ -204,6 +203,8 @@ void ASplashRange::Tick(float Dt) {
         if(PC->WasInputKeyJustPressed(EKeys::Two)) Command(A::Breeze);
         if(PC->WasInputKeyJustPressed(EKeys::Three)) Command(A::Gusts);
         if(PC->WasInputKeyJustPressed(EKeys::C)) ChangeCamera();
+        if(PC->WasInputKeyJustPressed(EKeys::Q)) ToggleQuality();
+        if(PC->WasInputKeyJustPressed(EKeys::Tab)) bPhotoMode=!bPhotoMode;
         if(PC->WasInputKeyJustPressed(EKeys::M)) ToggleSound();
         if(PC->WasInputKeyJustPressed(EKeys::H)) bHelp=!bHelp;
         if(PC->WasInputKeyJustPressed(EKeys::L)) ExportLog();
@@ -218,11 +219,12 @@ void ASplashRange::Tick(float Dt) {
         if(!Sim.running) Position.Z+=FMath::Sin(SceneTime*1.2f+I)*20;
         MeshComponent->SetVisibility(B.alive); MeshComponent->SetWorldLocation(Position);
         float Size=B.kind==splash::BalloonKind::Tough?1.55f:1.3f; MeshComponent->SetWorldScale3D(FVector(Size,Size,Size*1.25f)*(1+B.wet*.1));
+        BalloonKnots[I]->SetVisibility(B.alive); BalloonKnots[I]->SetWorldLocation(Position-FVector(0,0,Size*62+7));
         Ribbons[I]->SetVisibility(B.alive); Ribbons[I]->SetWorldLocation(Position-FVector(0,0,Size*50+55)); Ribbons[I]->SetWorldRotation(FRotator(FMath::Sin(SceneTime*2+I)*8,0,0));
         if(BalloonMaterials[I]) BalloonMaterials[I]->SetVectorParameterValue(TEXT("Tint"),B.protectedZone?FLinearColor(.22f,.3f,.34f):FMath::Lerp(BalloonColor(I,B.kind),FLinearColor(.25f,.8f,1),float(B.wet*.4)));
     }
     FVector Direction=WorldPoint(Sim.aim); Head->SetWorldRotation(Direction.Rotation()); FRotator BarrelRotation=FRotationMatrix::MakeFromZ(Direction).Rotator(); Barrel->SetWorldRotation(BarrelRotation); Barrel->SetWorldLocation(WorldPoint(Sim.nozzle)+Direction*120); Muzzle->SetWorldRotation(BarrelRotation); Muzzle->SetWorldLocation(WorldPoint(Sim.nozzle)+Direction*222);
-    UpdateEffects(Sim.paused?0:Dt); UpdateCamera(Dt);
+    UpdateEffects(Sim.paused?0:Dt); UpdateCamera(Dt); UpdateDiagnostics(Dt);
     if(Sim.wave!=LastWave) { LastWave=Sim.wave; WaveBanner=3; if(bSound && WaveSound) UGameplayStatics::PlaySound2D(this,WaveSound,.3f); }
     if(bDemoTest) {
         DemoWallTime+=Dt;

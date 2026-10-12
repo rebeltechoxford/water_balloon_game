@@ -1,58 +1,73 @@
 #include "SplashGame.h"
 #include "Engine/Canvas.h"
+#include "CanvasItem.h"
+#include "Engine/Font.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 
-static const FLinearColor HUDInk(.012f,.026f,.048f,.97f), HUDPanel(.022f,.048f,.077f,.92f), HUDMint(.32f,1,.76f,1), HUDMuted(.57f,.72f,.8f,1), HUDWhite(.94f,.98f,1,1), HUDGold(1,.72f,.3f,1), HUDRed(1,.35f,.32f,1);
+static const FLinearColor HUDInk(.012f,.018f,.021f,.86f), HUDPanel(.018f,.025f,.027f,.74f), HUDMint(.58f,.87f,.72f,1), HUDMuted(.57f,.72f,.8f,1), HUDWhite(.94f,.98f,1,1), HUDGold(1,.72f,.3f,1), HUDRed(1,.35f,.32f,1);
 ASplashRange* ASplashHUD::Range() const { for(TActorIterator<ASplashRange> I(GetWorld());I;++I) return *I; return nullptr; }
-void ASplashHUD::Text(const FString& S,float X,float Y,FLinearColor C,float Size) { DrawText(S,C,OffsetX+X*Scale,OffsetY+Y*Scale,GEngine->GetMediumFont(),FMath::Max(.8f,Size*1.25f)*Scale,false); }
+void ASplashHUD::Text(const FString& S,float X,float Y,FLinearColor C,float Size) {
+    // Rasterize at the actual display size instead of magnifying a tiny bitmap.
+    const float Points=FMath::Max(8.f,float(FMath::RoundToInt(11.f*Size*Scale)));
+    const FSlateFontInfo Font(GEngine->GetMediumFont(),Points,Size>=1.3f?TEXT("Bold"):TEXT("Regular"));
+    FCanvasTextItem Item(FVector2D(FMath::RoundToInt(OffsetX+X*Scale),FMath::RoundToInt(OffsetY+Y*Scale)),FText::FromString(S),Font,C);
+    Canvas->DrawItem(Item);
+}
 void ASplashHUD::Box(float X,float Y,float W,float H,FLinearColor C) { DrawRect(C,OffsetX+X*Scale,OffsetY+Y*Scale,W*Scale,H*Scale); }
 void ASplashHUD::Line(float X,float Y,float X2,float Y2,FLinearColor C,float T) { DrawLine(OffsetX+X*Scale,OffsetY+Y*Scale,OffsetX+X2*Scale,OffsetY+Y2*Scale,C,T*Scale); }
 void ASplashHUD::Button(FName ID,const FString& Label,float X,float Y,float W,FLinearColor C) {
     float MX=0,MY=0; GetOwningPlayerController()->GetMousePosition(MX,MY);
     const bool Hover=MX>OffsetX+X*Scale && MX<OffsetX+(X+W)*Scale && MY>OffsetY+Y*Scale && MY<OffsetY+(Y+48)*Scale;
-    Box(X,Y,W,48,Hover?FLinearColor(.09f,.22f,.27f,.98f):FLinearColor(.035f,.085f,.12f,.97f)); Box(X,Y,3,48,C);
+    Box(X,Y,W,48,Hover?FLinearColor(.1f,.17f,.15f,.98f):FLinearColor(.028f,.043f,.045f,.95f)); Box(X,Y,3,48,C);
     Text(Label,X+18,Y+14,C,.89f); AddHitBox(FVector2D(OffsetX+X*Scale,OffsetY+Y*Scale),FVector2D(W*Scale,48*Scale),ID,true);
 }
 void ASplashHUD::DrawHUD() {
     Super::DrawHUD(); auto* R=Range(); if(!Canvas || !R) return; auto& S=R->Sim;
     Scale=FMath::Min(Canvas->SizeX/1600.f,Canvas->SizeY/900.f); OffsetX=(Canvas->SizeX-1600*Scale)/2; OffsetY=(Canvas->SizeY-900*Scale)/2;
-    // A compact status bar keeps the 3D arena visible.
-    Box(24,20,1552,84,HUDInk); Box(44,40,4,40,HUDMint);
-    Text(TEXT("CLANKA"),62,31,HUDWhite,1.5f); Text(TEXT("S P L A S H   L A B"),64,69,HUDMuted,.55f);
-    Text(TEXT("AUTONOMOUS BALLOON RANGE"),390,39,HUDWhite,.99f); Text(TEXT("TRACK  /  ALIGN  /  SPRAY  /  REPEAT"),392,69,HUDMuted,.55f);
-    Text(FString::Printf(TEXT("%03d"),S.popped),1050,31,HUDMint,1.55f); Text(TEXT("BALLOONS POPPED"),1053,70,HUDMuted,.53f);
-    Text(FString::Printf(TEXT("%02d:%02d"),int(S.time)/60,int(S.time)%60),1350,36,HUDWhite,1.25f); Text(TEXT("CONTINUOUS SESSION"),1349,70,HUDMuted,.53f);
+    if(R->bPhotoMode) { Text(TEXT("TAB  RETURN TO CONTROLS"),36,864,HUDWhite,.65f); return; }
+    Box(28,22,1544,68,HUDInk); Box(48,39,3,34,HUDMint);
+    Text(TEXT("CLANKA"),67,30,HUDWhite,1.75f);
+    Text(TEXT("FIELD STATION  /  AUTONOMOUS WATER RANGE"),265,45,HUDMuted,.73f);
+    Text(FString::Printf(TEXT("%03d   POPPED"),S.popped),1045,43,HUDWhite,.92f);
+    Text(FString::Printf(TEXT("%02d:%02d"),int(S.time)/60,int(S.time)%60),1265,43,HUDMuted,.92f);
+    Text(FString::Printf(TEXT("%.0f FPS"),R->SmoothedFPS),1436,43,R->SmoothedFPS>=29.5f?HUDMint:HUDGold,.85f);
     if(!S.running) {
-        // Designed to be left on screen: one unmistakable ON button.
-        Box(76,224,600,438,HUDInk); Box(76,224,600,4,HUDMint);
-        Text(TEXT("WATER. BALLOONS."),118,269,HUDWhite,2.5f);
-        Text(TEXT("FULLY AUTOMATIC."),118,316,HUDMint,2.5f);
-        Text(TEXT("A little water cannon with a big job."),120,383,HUDMuted,1.03f);
-        Text(TEXT("01   Switch ON to start tracking."),120,443,HUDWhite,.98f);
-        Text(TEXT("02   Press ENGAGE. Enjoy the show."),120,479,HUDWhite,.98f);
-        Button(S.stopped?TEXT("release"):TEXT("on"),S.stopped?TEXT("RELEASE STOP TO RESTART"):TEXT("POWER ON    /    CLICK TO START"),120,546,510,S.stopped?HUDRed:HUDMint);
-        Text(TEXT("Automatic refills. Endless balloons. No time limit."),120,616,HUDMuted,.7f);
-        Box(984,642,535,128,HUDPanel); Text(TEXT("SIMULATION SANDBOX"),1008,663,HUDMint,.73f);
-        Text(TEXT("Everything happens here in the virtual range."),1008,696,HUDWhite,.83f);
-        Text(TEXT("Real-time C++ simulation  +  Unreal Engine"),1008,727,HUDMuted,.67f);
-        Button(TEXT("sound"),R->bSound?TEXT("SOUND ON  /  M"):TEXT("SOUND OFF  /  M"),76,752,260,HUDMuted);
-        Button(TEXT("quit"),TEXT("QUIT"),351,752,155,HUDMuted);
-        Text(TEXT("C  CAMERA     SCROLL  ZOOM"),1110,840,HUDMuted,.7f);
+        Box(64,236,609,441,HUDInk); Box(64,236,3,441,HUDMint);
+        Text(TEXT("FIELD TRIAL 03  /  THE WATER WORKS"),101,268,HUDGold,.82f);
+        Text(TEXT("JUST ADD"),98,314,HUDWhite,3.35f);
+        Text(TEXT("WATER."),98,375,HUDWhite,3.35f);
+        Text(TEXT("Switch ON. Engage. Watch it work."),101,462,HUDWhite,1.08f);
+        Text(TEXT("Endless balloons. Automatic water. Your front-row seat."),101,504,HUDMuted,.73f);
+        Button(S.stopped?TEXT("release"):TEXT("on"),S.stopped?TEXT("RELEASE STOP TO RESTART"):TEXT("POWER ON   /   CLICK TO START"),101,557,527,S.stopped?HUDRed:HUDMint);
+        Text(TEXT("C  CHANGE CAMERA     SCROLL  ZOOM     TAB  PHOTO VIEW"),101,636,HUDMuted,.62f);
+        Button(TEXT("quality"),TEXT("GRAPHICS: ")+R->QualityLabel(),64,785,326,HUDMuted);
+        Button(TEXT("sound"),R->bSound?TEXT("SOUND ON"):TEXT("SOUND OFF"),406,785,181,HUDMuted);
+        Button(TEXT("quit"),TEXT("QUIT"),603,785,118,HUDMuted);
+        Text(TEXT("A SMALL MACHINE. A SATISFYING JOB."),1060,844,HUDWhite,.78f);
         return;
     }
-    Box(24,124,306,98,HUDPanel); Text(TEXT("SYSTEM STATUS"),45,140,HUDMuted,.58f);
-    Text(UTF8_TO_TCHAR(S.status()),45,174,S.stopped?HUDRed:(S.verified?HUDMint:HUDGold),.9f);
+    Box(28,111,287,152,HUDPanel); Text(TEXT("SYSTEM STATUS"),48,129,HUDMuted,.6f);
+    Text(UTF8_TO_TCHAR(S.status()),48,160,S.stopped?HUDRed:(S.verified?HUDMint:HUDGold),.94f);
+    const auto* T=S.target();
+    Text(T?FString::Printf(TEXT("TRACK B-%02d   /   %.0f%% ACQUIRED"),T->id,T->confidence*100):TEXT("SEARCHING THE RANGE"),48,200,HUDWhite,.62f);
+    const TCHAR* Wind[]={TEXT("CALM"),TEXT("BREEZE"),TEXT("GUSTS")};
+    Text(FString::Printf(TEXT("WIND  %s    /    1  2  3"),Wind[S.scenario]),48,232,HUDMuted,.61f);
+    Box(1320,111,252,114,HUDPanel); Text(TEXT("WATER RESERVE"),1340,129,HUDMuted,.6f);
+    Text(FString::Printf(TEXT("%.0f%%"),S.tank),1340,153,HUDWhite,1.6f);
+    Box(1340,196,210,4,HUDInk); Box(1340,196,210*S.tank/100,4,HUDMint);
+    Text(S.refill>0?TEXT("AUTOMATIC REFILL IN PROGRESS"):TEXT("AUTO REFILL ENABLED"),1324,235,HUDWhite,.61f);
     if(!S.verified && !S.stopped && !S.paused) {
-        Box(470,126,660,76,HUDInk); Text(TEXT("TRACKING ONLINE. READY TO ENGAGE."),498,143,HUDMint,.92f); Text(TEXT("Press ENGAGE below to authorize automatic water."),498,174,HUDMuted,.73f);
+        Box(485,118,630,65,HUDInk); Text(TEXT("TRACKING ONLINE  /  READY TO ENGAGE"),516,132,HUDMint,.86f);
+        Text(TEXT("Press ENGAGE below to start automatic spraying."),516,160,HUDMuted,.63f);
     }
     // Every annotation is projected from live backend positions.
     TArray<FVector2D> UsedLabels;
     for(int I=0;I<static_cast<int>(S.balloons.size());++I) {
         const auto& B=S.balloons[I]; if(!B.alive) continue; FVector2D P;
         if(!GetOwningPlayerController()->ProjectWorldLocationToScreen(FVector(B.p.x,B.p.y,B.p.z),P)) continue;
-        float X=(P.X-OffsetX)/Scale,Y=(P.Y-OffsetY)/Scale; if(X<350 || X>1280 || Y<215 || Y>737) continue;
+        float X=(P.X-OffsetX)/Scale,Y=(P.Y-OffsetY)/Scale; if(X<325 || X>1305 || Y<192 || Y>750) continue;
         const bool Selected=I==S.selected; FLinearColor C=B.protectedZone?HUDGold:(Selected?HUDMint:HUDWhite);
         if(Selected) {
             constexpr float D=42,L=13;
@@ -69,34 +84,18 @@ void ASplashHUD::DrawHUD() {
         }
     }
     for(const auto& F:R->FloatingScores) { FVector2D P; if(GetOwningPlayerController()->ProjectWorldLocationToScreen(F.Position,P)) { FLinearColor C=HUDMint; C.A=FMath::Clamp(1-F.Age/1.15f,0.f,1.f); Text(TEXT("SPLASH!"),(P.X-OffsetX)/Scale-38,(P.Y-OffsetY)/Scale-20,C,1.0f); } }
-    // Compact radar and water readout.
-    Box(1310,125,266,290,HUDPanel); Text(TEXT("LIVE TRACKS"),1332,145,HUDMuted,.63f);
-    Box(1333,184,217,166,FLinearColor(.009f,.025f,.043f,.97f)); Box(1497,184,53,166,FLinearColor(.23f,.14f,.065f,.75f));
-    for(int I=1;I<4;++I) { Box(1333+I*54,184,1,166,FLinearColor(.05f,.11f,.16f)); Box(1333,184+I*41,217,1,FLinearColor(.05f,.11f,.16f)); }
-    for(int I=0;I<static_cast<int>(S.balloons.size());++I) { const auto& B=S.balloons[I]; if(!B.alive) continue; float X=1333+(B.p.y+1200)/2400*217,Y=345-B.p.x/2500*155; Box(X-3,Y-3,I==S.selected?7:4,I==S.selected?7:4,B.protectedZone?HUDGold:(I==S.selected?HUDMint:HUDMuted)); }
-    Text(TEXT("AMBER  /  PROTECTED ZONE"),1332,374,HUDGold,.56f);
-    Box(1310,435,266,153,HUDPanel); Text(TEXT("WATER RESERVE"),1332,455,HUDMuted,.63f);
-    Text(FString::Printf(TEXT("%.0f%%"),S.tank),1332,483,FLinearColor(.33f,.8f,1),1.3f);
-    Box(1332,524,222,7,HUDInk); Box(1332,524,222*S.tank/100,7,FLinearColor(.2f,.74f,1));
-    Text(S.refill>0?FString::Printf(TEXT("REFILLING  %.1fs"),S.refill):TEXT("AUTO REFILL ENABLED"),1332,552,HUDMint,.57f);
-    const auto* T=S.target();
-    Box(24,240,306,145,HUDPanel); Text(TEXT("SELECTED TRACK"),45,256,HUDMuted,.6f);
-    Text(T?FString::Printf(TEXT("BALLOON  B-%02d"),T->id):TEXT("SCANNING..."),45,287,HUDWhite,.9f);
-    Text(T?FString::Printf(TEXT("ACQUISITION  %.0f%%"),T->confidence*100):TEXT("WAITING FOR ELIGIBLE BALLOON"),45,325,HUDMint,.62f);
-    Text(TEXT("Click any balloon to prioritize it."),45,355,HUDMuted,.58f);
-    Box(24,404,306,117,HUDPanel); Text(TEXT("WIND PROFILE"),45,420,HUDMuted,.6f);
-    const TCHAR* Wind[]={TEXT("CALM"),TEXT("BREEZE"),TEXT("GUSTS")}; Text(Wind[S.scenario],45,451,HUDWhite,.93f);
-    Text(TEXT("1  CALM     2  BREEZE     3  GUSTS"),45,487,HUDMuted,.55f);
-    Box(24,778,1552,98,HUDInk);
-    Button(TEXT("engage"),S.verified?TEXT("DISENGAGE  /  V"):TEXT("ENGAGE  /  ENTER"),45,797,262,S.verified?HUDGold:HUDMint);
-    Button(TEXT("camera"),TEXT("CAMERA  /  C"),321,797,200,HUDMuted);
-    Button(TEXT("pause"),S.paused?TEXT("RESUME"):TEXT("PAUSE  /  SPACE"),535,797,211,HUDMuted);
-    Button(TEXT("stop"),S.stopped?TEXT("RELEASE STOP"):TEXT("STOP  /  E"),760,797,215,HUDRed);
-    Button(TEXT("sound"),R->bSound?TEXT("SOUND ON"):TEXT("SOUND OFF"),989,797,174,HUDMuted);
-    Button(TEXT("off"),TEXT("POWER OFF"),1177,797,201,HUDMuted);
-    Button(TEXT("help"),TEXT("?"),1392,797,66,HUDMuted);
-    Button(TEXT("reset"),TEXT("RESET"),1472,797,84,HUDMuted);
-    if(!S.events.empty()) Text(UTF8_TO_TCHAR(S.events.back().message.c_str()),47,854,HUDMuted,.55f);
+    Box(28,783,1544,94,HUDInk);
+    Button(TEXT("engage"),S.verified?TEXT("DISENGAGE  /  V"):TEXT("ENGAGE  /  ENTER"),46,800,252,S.verified?HUDGold:HUDMint);
+    Button(TEXT("camera"),TEXT("CAMERA  /  C"),310,800,182,HUDMuted);
+    Button(TEXT("pause"),S.paused?TEXT("RESUME"):TEXT("PAUSE"),504,800,132,HUDMuted);
+    Button(TEXT("stop"),S.stopped?TEXT("RELEASE STOP"):TEXT("STOP  /  E"),648,800,183,HUDRed);
+    Button(TEXT("quality"),R->QualityLabel(),843,800,203,HUDMuted);
+    Button(TEXT("off"),TEXT("POWER OFF"),1058,800,172,HUDMuted);
+    Button(TEXT("sound"),R->bSound?TEXT("SOUND ON"):TEXT("SOUND OFF"),1242,800,158,HUDMuted);
+    Button(TEXT("help"),TEXT("?"),1412,800,48,HUDMuted);
+    Button(TEXT("reset"),TEXT("RESET"),1472,800,82,HUDMuted);
+    Text(TEXT("TAB  PHOTO VIEW    /    SCROLL  ZOOM    /    CLICK A BALLOON TO PRIORITIZE"),48,855,HUDMuted,.55f);
+    Text(TEXT("AMBER LANE: NO SPRAY"),1320,855,HUDGold,.55f);
     if(R->NoticeSeconds>0) { Box(444,707,713,44,HUDPanel); Text(R->Notice,460,721,HUDMint,.7f); }
     if(S.stopped || S.paused) {
         Box(516,328,568,158,HUDInk); Text(S.stopped?TEXT("SYSTEM STOPPED"):TEXT("SIMULATION PAUSED"),552,355,S.stopped?HUDRed:HUDWhite,1.4f);
@@ -107,7 +106,7 @@ void ASplashHUD::DrawHUD() {
         Text(TEXT("ON starts tracking. ENGAGE starts the water."),447,328,HUDWhite,.96f);
         Text(TEXT("The cannon chooses a balloon, aligns, and sprays it."),447,366,HUDWhite,.92f);
         Text(TEXT("Amber zone balloons are excluded. Refills are automatic."),447,404,HUDWhite,.9f);
-        Text(TEXT("C  camera     Scroll  zoom     1/2/3  wind     M  sound"),447,461,HUDMuted,.82f);
+        Text(TEXT("C  camera    Q  graphics    Tab  photo view    M  sound"),447,461,HUDMuted,.82f);
         Text(TEXT("L  save log     R  reset     Esc  power off / quit"),447,498,HUDMuted,.82f);
         Button(TEXT("close_help"),TEXT("GOT IT"),447,543,220,HUDMint);
     }
@@ -121,6 +120,7 @@ void ASplashHUD::NotifyHitBoxClick(FName Name) {
     else if(Name==TEXT("stop")) R->Command(R->Sim.stopped?A::ReleaseStop:A::Stop);
     else if(Name==TEXT("off")) R->ReturnToMenu();
     else if(Name==TEXT("camera")) R->ChangeCamera();
+    else if(Name==TEXT("quality")) R->ToggleQuality();
     else if(Name==TEXT("sound")) R->ToggleSound();
     else if(Name==TEXT("reset")) R->Command(A::Reset);
     else if(Name==TEXT("help")) R->bHelp=!R->bHelp;

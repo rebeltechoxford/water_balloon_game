@@ -7,4 +7,4 @@ if not exist "%GAME%" (
   pause
   exit /b 1
 )
-start "" "%GAME%" -windowed -ResX=1600 -ResY=900
+start "" "%GAME%" -fullscreen -ResX=1920 -ResY=1080

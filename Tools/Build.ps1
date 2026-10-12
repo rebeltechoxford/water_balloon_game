@@ -8,7 +8,7 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT='1'
 $env:UBA_ROOT=Join-Path $scratch 'UBA'
 $ubt=Join-Path $Engine 'Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.dll'
 $dotnet=Join-Path $Engine 'Engine/Binaries/ThirdParty/DotNet/10.0/win-x64/dotnet.exe'
-$argsList=@("-Project=$project/Clanka.uproject","-Log=$scratch/Build-$Target.log",'-NoUBA','-NoHotReloadFromIDE','-WaitMutex')
+$argsList=@("-Project=$project/Clanka.uproject","-Log=$scratch/Build-$Target.log",'-NoUBA','-MaxParallelActions=1','-NoHotReloadFromIDE','-WaitMutex')
 if($Target -eq 'Solution') { $argsList=@('-ProjectFiles','-Game','-Engine','-2026')+$argsList }
 else { $name=if($Target -eq 'Editor'){'ClankaEditor'}else{'Clanka'}; $argsList=@($name,'Win64','Development')+$argsList }
 & $dotnet $ubt @argsList
